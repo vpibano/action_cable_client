@@ -5,6 +5,7 @@ class ActionCableClient
     IDENTIFIER_KEY = 'identifier'
     IDENTIFIER_PING = 'ping'
     IDENTIFIER_WELCOME = 'welcome'
+    IDENTIFIER_REJECT = 'reject_subscription'
     # Type is never sent, but is received
     # TODO: find a better place for this constant
     TYPE_KEY = 'type'

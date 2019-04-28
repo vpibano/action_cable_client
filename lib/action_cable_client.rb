@@ -23,7 +23,7 @@ class ActionCableClient
   # The queue should store entries in the format:
   # [ action, data ]
   attr_accessor :message_queue, :_subscribed
-  attr_accessor :_subscribed_callback, :_pinged_callback, :_connected_callback, :_disconnected_callback
+  attr_accessor :_subscribed_callback, :_pinged_callback, :_connected_callback, :_disconnected_callback, :_rejected_callback
 
   def_delegator :_websocket_client, :onerror, :errored
   def_delegator :_websocket_client, :send, :send_msg
@@ -108,6 +108,19 @@ class ActionCableClient
     end
   end
 
+  # callback when the client is rejected after welcome
+  #
+  # @example
+  #   client = ActionCableClient.new(uri, 'RoomChannel')
+  #   client.rejected do
+  #     # do things after the client subscription is rejected
+  #   end
+  def rejected
+    self._rejected_callback = proc do |json|
+      yield(json)
+    end
+  end
+
   # callback when the client receives a confirm_subscription message
   # from the action_cable server.
   # This is only called once, and signifies that you can now send
@@ -161,6 +174,8 @@ class ActionCableClient
     elsif is_welcome?(json)
       subscribe
       _connected_callback&.call(json)
+    elsif is_rejected?(json)
+      _rejected_callback&.call(json)
     elsif !subscribed?
       check_for_subscribe_confirmation(json)
     else
@@ -190,6 +205,12 @@ class ActionCableClient
   def is_welcome?(message)
     message_identifier = message[Message::TYPE_KEY]
     Message::IDENTIFIER_WELCOME == message_identifier
+  end
+
+  # {"type" => "reject_subscription"}
+  def is_rejected?(message)
+    message_identifier = message[Message::TYPE_KEY]
+    Message::IDENTIFIER_REJECT == message_identifier
   end
 
   def subscribe
